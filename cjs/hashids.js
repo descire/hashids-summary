@@ -21,16 +21,33 @@ class Hashids {
         }
         const saltChars = Array.from(salt);
         const alphabetChars = Array.from(alphabet);
+        // 这个玩意到底使用来干什么的？？？？
         const sepsChars = Array.from(seps);
         this.salt = saltChars;
+        
+        console.log(`saltChars: ${saltChars}`);
+        console.log(`alphabetChars: ${alphabetChars}`);
+        console.log(`sepsChars: ${sepsChars}`);
+
+        // （1）去重处理，避免出现重复导致重放不了
         const uniqueAlphabet = (0, util_1.keepUnique)(alphabetChars);
+        console.log(`uniqueAlphabet: ${uniqueAlphabet}`)
         if (uniqueAlphabet.length < MIN_ALPHABET_LENGTH) {
             throw new Error(`Hashids: alphabet must contain at least ${MIN_ALPHABET_LENGTH} unique characters, provided: ${uniqueAlphabet.join('')}`);
         }
         /** `alphabet` should not contains `seps` */
         this.alphabet = (0, util_1.withoutChars)(uniqueAlphabet, sepsChars);
+        
+        // 去除掉 sepsChars 中的字符，为什么要做这一步？？？？
+        console.log(`this.alphabet: ${this.alphabet}`);
+
+
         /** `seps` should contain only characters present in `alphabet` */
+        // 筛选出 sepsChars 中必须包含在 uniqueAlphabet 数组中的？？？？？？？？
         const filteredSeps = (0, util_1.onlyChars)(sepsChars, uniqueAlphabet);
+        
+        console.log(`filteredSeps: ${filteredSeps}`);
+
         this.seps = (0, util_1.shuffle)(filteredSeps, saltChars);
         let sepsLength;
         let diff;

@@ -117,6 +117,7 @@ export default class Hashids {
     first: T | T[],
     ...inputNumbers: T[]
   ): string {
+    // （1）针对参数做一些健壮性处理
     const ret = ''
 
     let numbers: T[] = Array.isArray(first)

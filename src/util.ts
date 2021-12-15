@@ -19,6 +19,7 @@ export const isIntegerNumber = (n: NumberLike | string) =>
 export const isPositiveAndFinite = (n: NumberLike) =>
   typeof n === 'bigint' || (n >= 0 && Number.isSafeInteger(n))
 
+  // 洗牌算法
 export function shuffle(
   alphabetChars: string[],
   saltChars: string[],
