@@ -49,6 +49,7 @@ class Hashids {
         console.log(`filteredSeps: ${filteredSeps}`);
 
         this.seps = (0, util_1.shuffle)(filteredSeps, saltChars);
+        console.log(`seps: ${seps}`)
         let sepsLength;
         let diff;
         if (this.seps.length === 0 ||

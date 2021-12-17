@@ -24,6 +24,8 @@ function shuffle(alphabetChars, saltChars) {
         v %= saltChars.length;
         // eslint-disable-next-line no-multi-assign
         p += integer = saltChars[v].codePointAt(0);
+        console.log(' ------------------------------------------ ');
+        console.log(`p: ${p} v: ${v} integer: ${integer}`);
         const j = (integer + v + p) % i;
         // swap characters at positions i and j
         const a = transformed[i];
@@ -31,6 +33,7 @@ function shuffle(alphabetChars, saltChars) {
         transformed[j] = a;
         transformed[i] = b;
     }
+    console.log(`transformed: ${transformed}`)
     return transformed;
 }
 exports.shuffle = shuffle;
