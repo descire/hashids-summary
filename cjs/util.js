@@ -24,8 +24,8 @@ function shuffle(alphabetChars, saltChars) {
         v %= saltChars.length;
         // eslint-disable-next-line no-multi-assign
         p += integer = saltChars[v].codePointAt(0);
-        console.log(' ------------------------------------------ ');
-        console.log(`p: ${p} v: ${v} integer: ${integer}`);
+        // console.log(' ------------------------------------------ ');
+        // console.log(`p: ${p} v: ${v} integer: ${integer}`);
         const j = (integer + v + p) % i;
         // swap characters at positions i and j
         const a = transformed[i];
@@ -38,6 +38,7 @@ function shuffle(alphabetChars, saltChars) {
 }
 exports.shuffle = shuffle;
 const toAlphabet = (input, alphabetChars) => {
+    // 获取映射表中的数字
     const id = [];
     let value = input;
     if (typeof value === 'bigint') {
@@ -50,6 +51,8 @@ const toAlphabet = (input, alphabetChars) => {
     else {
         do {
             id.unshift(alphabetChars[value % alphabetChars.length]);
+            console.log(' ++++++++++++++++++++++++++++++++++++')
+            console.log(alphabetChars[value % alphabetChars.length], Math.floor(value / alphabetChars.length))
             value = Math.floor(value / alphabetChars.length);
         } while (value > 0);
     }

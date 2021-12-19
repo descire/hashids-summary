@@ -63,6 +63,8 @@ export const toAlphabet = (
     } while (value > BigInt(0))
   } else {
     do {
+      console.log(' ++++++++++++++++++++++++++++++++++++')
+      console.log(alphabetChars[value % alphabetChars.length], Math.floor(value / alphabetChars.length))
       id.unshift(alphabetChars[value % alphabetChars.length])
       value = Math.floor(value / alphabetChars.length)
     } while (value > 0)

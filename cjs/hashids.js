@@ -61,8 +61,11 @@ class Hashids {
                 this.alphabet = this.alphabet.slice(diff);
             }
         }
+        // 在将原数组混淆一下
         this.alphabet = (0, util_1.shuffle)(this.alphabet, saltChars);
         const guardCount = Math.ceil(this.alphabet.length / GUARD_DIV);
+        // 这个地方不太清楚为什么要这么处理
+        console.log(`guardCount：${guardCount}`);
         if (this.alphabet.length < 3) {
             this.guards = this.seps.slice(0, guardCount);
             this.seps = this.seps.slice(guardCount);
@@ -80,6 +83,7 @@ class Hashids {
         ]);
     }
     encode(first, ...inputNumbers) {
+        // 这部分主要是做一些入参的校验
         const ret = '';
         let numbers = Array.isArray(first)
             ? first
@@ -88,6 +92,7 @@ class Hashids {
             return ret;
         }
         if (!numbers.every(util_1.isIntegerNumber)) {
+            console.log(' ====')
             numbers = numbers.map((n) => typeof n === 'bigint' || typeof n === 'number'
                 ? n
                 : (0, util_1.safeParseInt10)(String(n)));
@@ -142,20 +147,33 @@ class Hashids {
         return this.allowedCharsRegExp.test(id);
     }
     _encode(numbers) {
+        console.log(' --------------------------------------------------------------------- ')
         let { alphabet } = this;
         const numbersIdInt = numbers.reduce((last, number, i) => last +
             (typeof number === 'bigint'
                 ? Number(number % BigInt(i + MODULO_PART))
                 : number % (i + MODULO_PART)), 0);
+        console.log(' ----------------------------- numbersIdInt', numbersIdInt)       
         let ret = [alphabet[numbersIdInt % alphabet.length]];
         const lottery = [...ret];
-        const { seps } = this;
+        const { seps } = this
         const { guards } = this;
+        console.log(`seps: ${seps}`);
+        console.log(`guards: ${guards}`);
+        console.log(`numbers: ${typeof numbers}`);
+        console.log(`this.salt: `, this.salt);
+        console.log(`alphabet: `, alphabet);
         numbers.forEach((number, i) => {
+            console.log(`numbers.forEach ------------------------------------------`);
             const buffer = lottery.concat(this.salt, alphabet);
+            console.log(`buffer: ${buffer}`);
             alphabet = (0, util_1.shuffle)(alphabet, buffer);
             const last = (0, util_1.toAlphabet)(number, alphabet);
+            console.log(`alphabet: ${alphabet}`);
+            console.log(`last: ${last}`);
+
             ret.push(...last);
+            // 通过分隔符来分割多个数字的情况，这些分隔符是不参与编码的
             if (i + 1 < numbers.length) {
                 const charCode = last[0].codePointAt(0) + i;
                 const extraNumber = typeof number === 'bigint'
@@ -164,25 +182,29 @@ class Hashids {
                 ret.push(seps[extraNumber % seps.length]);
             }
         });
-        if (ret.length < this.minLength) {
-            const prefixGuardIndex = (numbersIdInt + ret[0].codePointAt(0)) % guards.length;
-            ret.unshift(guards[prefixGuardIndex]);
-            if (ret.length < this.minLength) {
-                const suffixGuardIndex = (numbersIdInt + ret[2].codePointAt(0)) % guards.length;
-                ret.push(guards[suffixGuardIndex]);
-            }
-        }
-        const halfLength = Math.floor(alphabet.length / 2);
-        while (ret.length < this.minLength) {
-            alphabet = (0, util_1.shuffle)(alphabet, alphabet);
-            ret.unshift(...alphabet.slice(halfLength));
-            ret.push(...alphabet.slice(0, halfLength));
-            const excess = ret.length - this.minLength;
-            if (excess > 0) {
-                const halfOfExcess = excess / 2;
-                ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength);
-            }
-        }
+
+        console.log(' ---------------------------- ret', ret)
+
+        // 是否满足最小的长度
+        // if (ret.length < this.minLength) {
+        //     const prefixGuardIndex = (numbersIdInt + ret[0].codePointAt(0)) % guards.length;
+        //     ret.unshift(guards[prefixGuardIndex]);
+        //     if (ret.length < this.minLength) {
+        //         const suffixGuardIndex = (numbersIdInt + ret[2].codePointAt(0)) % guards.length;
+        //         ret.push(guards[suffixGuardIndex]);
+        //     }
+        // }
+        // const halfLength = Math.floor(alphabet.length / 2);
+        // while (ret.length < this.minLength) {
+        //     alphabet = (0, util_1.shuffle)(alphabet, alphabet);
+        //     ret.unshift(...alphabet.slice(halfLength));
+        //     ret.push(...alphabet.slice(0, halfLength));
+        //     const excess = ret.length - this.minLength;
+        //     if (excess > 0) {
+        //         const halfOfExcess = excess / 2;
+        //         ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength);
+        //     }
+        // }
         return ret;
     }
     _decode(id) {
