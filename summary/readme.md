@@ -1,4 +1,4 @@
-# 剖析 hashids 实现原理
+# 剖析 hashids 实现原理（核心篇）
 
 ### 一、应用场景
 
@@ -72,18 +72,109 @@ export const toAlphabet = (
 
 &emsp;&emsp;hashids 通过该方法将输入的值转为了六十二进制（alphabetChars 默认为 62 个字符），这样原数字的长度会得到大大的缩减。
 
-&emsp;&emsp;细心的同学会发现 alphabetChars 和最终输出的结果是一一映射的关系，那么 alphabetChars 必须是一个被加密过的数组。
+&emsp;&emsp;细心的同学会发现 alphabetChars 和最终输出的结果是一一映射的关系，所以 alphabetChars 必须是一个被加密过的数组。
 
 ### 四、改造版的 Fisher–Yates shuffle 算法
 
+&emsp;&emsp;Fisher–Yates shuffle 是一个将有限集合生成一个随机序列的算法，不了解的同学可以先读这篇文章[Fisher–Yates shuffle 算法](https://mp.weixin.qq.com/s/Kse8-pyWG4BNEtQElJ5Hrg);
 
+&emsp;&emsp;由于 Fisher–Yates shuffle 算法每一次随机选取，所以不能直接使用，这样会导致相同场景下加密出来的内容是不一样的。
 
-    其实现原理主要分为两部分：     
+```JavaScript
+export function shuffle(
+  alphabetChars: string[],
+  saltChars: string[],
+): string[] {
+  if (saltChars.length === 0) {
+    return alphabetChars
+  }
 
-    1. 通过改良版的 Fisher–Yates shuffle 生成一个随机序列
-    2. 以进制转化的方式作为随机序列的映射方式
-    
+  let integer: number
+  const transformed = [...alphabetChars]
 
-### 四、参考资料
+  for (let i = transformed.length - 1, v = 0, p = 0; i > 0; i--, v++) {
+    v %= saltChars.length
+    p += integer = saltChars[v].codePointAt(0)!
+    const j = (integer + v + p) % i
+    const a = transformed[i]
+    const b = transformed[j]
+    transformed[j] = a
+    transformed[i] = b
+  }
 
-- https://meantobe.github.io/2019/12/11/hashids/
+  return transformed
+}
+```
+
+&emsp;&emsp;通过基于 salt 和 alphabetChars 的设计，使得在相同场景下得到的“随机”映射序列是固定的，从而使得加密结果是相同的。
+
+```JavaScript
+private _encode(numbers: NumberLike[]): string[] {
+  let { alphabet } = this
+
+  const numbersIdInt = numbers.reduce<number>(
+    (last, number, i) =>
+      last +
+      (typeof number === 'bigint'
+        ? Number(number % BigInt(i + MODULO_PART))
+        : number % (i + MODULO_PART)),
+    0,
+  )
+  // 这个地方的赋值下一篇文章会揭晓
+  let ret: string[] = [alphabet[numbersIdInt % alphabet.length]]
+  const lottery = [...ret]
+
+  numbers.forEach((number, i) => {
+    const buffer = lottery.concat(this.salt, alphabet)
+    alphabet = shuffle(alphabet, buffer)
+    const last = toAlphabet(number, alphabet)
+    ret.push(...last)
+  })
+  return ret
+}
+```
+
+&emsp;&emsp;然后，通过对原数据的**进制转化**得到查表后的内容，即为本次加密的内容。
+
+&emsp;&emsp;那么解密方法根据加密结果，逆向进制转化即可得到结果：
+
+```JavaScript
+// 为了方便理解，省略了部分非核心代码
+private _decode(id: string): NumberLike[] {
+  for (const subId of idArray) {
+    // 得到加密时对应的映射表
+    const buffer = [lotteryChar, ...this.salt, ...lastAlphabet]
+    const nextAlphabet = shuffle(
+      lastAlphabet,
+      buffer.slice(0, lastAlphabet.length),
+    )
+    // 逆向进制转化
+    result.push(fromAlphabet(Array.from(subId), nextAlphabet))
+    lastAlphabet = nextAlphabet
+  }
+
+  return result
+}
+
+export const fromAlphabet = (
+  inputChars: string[],
+  alphabetChars: string[],
+): NumberLike =>
+  inputChars.reduce<NumberLike>((carry, item) => {
+    const index = alphabetChars.indexOf(item)
+    const value = carry * alphabetChars.length + index
+    const isSafeValue = Number.isSafeInteger(value)
+    if (isSafeValue) {
+      return value
+    }
+  }, 0)
+```
+
+### 五、总结
+
+&emsp;&emsp;上述内容主要介绍了 hashids 库实现的核心原理：
+
+- 通过进制转化的方式将较长的正整型数字转为较短的字符。
+- 通过基于 salt 计算的改造版 Fisher–Yates shuffle 算法获取到足够随机且具有一定安全性的加密内容。
+
+&emsp;&emsp;下一篇会为大家介绍 hashids 库的一些细节处理，敬请期待。如果本文对您有帮助，欢迎点赞、收藏、分享。

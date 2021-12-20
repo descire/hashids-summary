@@ -21,35 +21,17 @@ class Hashids {
         }
         const saltChars = Array.from(salt);
         const alphabetChars = Array.from(alphabet);
-        // 这个玩意到底使用来干什么的？？？？
         const sepsChars = Array.from(seps);
         this.salt = saltChars;
-        
-        console.log(`saltChars: ${saltChars}`);
-        console.log(`alphabetChars: ${alphabetChars}`);
-        console.log(`sepsChars: ${sepsChars}`);
-
-        // （1）去重处理，避免出现重复导致重放不了
         const uniqueAlphabet = (0, util_1.keepUnique)(alphabetChars);
-        console.log(`uniqueAlphabet: ${uniqueAlphabet}`)
         if (uniqueAlphabet.length < MIN_ALPHABET_LENGTH) {
             throw new Error(`Hashids: alphabet must contain at least ${MIN_ALPHABET_LENGTH} unique characters, provided: ${uniqueAlphabet.join('')}`);
         }
         /** `alphabet` should not contains `seps` */
         this.alphabet = (0, util_1.withoutChars)(uniqueAlphabet, sepsChars);
-        
-        // 去除掉 sepsChars 中的字符，为什么要做这一步？？？？
-        console.log(`this.alphabet: ${this.alphabet}`);
-
-
         /** `seps` should contain only characters present in `alphabet` */
-        // 筛选出 sepsChars 中必须包含在 uniqueAlphabet 数组中的？？？？？？？？
         const filteredSeps = (0, util_1.onlyChars)(sepsChars, uniqueAlphabet);
-        
-        console.log(`filteredSeps: ${filteredSeps}`);
-
         this.seps = (0, util_1.shuffle)(filteredSeps, saltChars);
-        console.log(`seps: ${seps}`)
         let sepsLength;
         let diff;
         if (this.seps.length === 0 ||
@@ -61,11 +43,8 @@ class Hashids {
                 this.alphabet = this.alphabet.slice(diff);
             }
         }
-        // 在将原数组混淆一下
         this.alphabet = (0, util_1.shuffle)(this.alphabet, saltChars);
         const guardCount = Math.ceil(this.alphabet.length / GUARD_DIV);
-        // 这个地方不太清楚为什么要这么处理
-        console.log(`guardCount：${guardCount}`);
         if (this.alphabet.length < 3) {
             this.guards = this.seps.slice(0, guardCount);
             this.seps = this.seps.slice(guardCount);
@@ -83,7 +62,6 @@ class Hashids {
         ]);
     }
     encode(first, ...inputNumbers) {
-        // 这部分主要是做一些入参的校验
         const ret = '';
         let numbers = Array.isArray(first)
             ? first
@@ -92,7 +70,6 @@ class Hashids {
             return ret;
         }
         if (!numbers.every(util_1.isIntegerNumber)) {
-            console.log(' ====')
             numbers = numbers.map((n) => typeof n === 'bigint' || typeof n === 'number'
                 ? n
                 : (0, util_1.safeParseInt10)(String(n)));
@@ -147,33 +124,23 @@ class Hashids {
         return this.allowedCharsRegExp.test(id);
     }
     _encode(numbers) {
-        console.log(' --------------------------------------------------------------------- ')
+        console.log(' -------------- 加密开始 -------------- ')
         let { alphabet } = this;
         const numbersIdInt = numbers.reduce((last, number, i) => last +
             (typeof number === 'bigint'
                 ? Number(number % BigInt(i + MODULO_PART))
                 : number % (i + MODULO_PART)), 0);
-        console.log(' ----------------------------- numbersIdInt', numbersIdInt)       
         let ret = [alphabet[numbersIdInt % alphabet.length]];
         const lottery = [...ret];
-        const { seps } = this
+        const { seps } = this;
         const { guards } = this;
-        console.log(`seps: ${seps}`);
-        console.log(`guards: ${guards}`);
-        console.log(`numbers: ${typeof numbers}`);
-        console.log(`this.salt: `, this.salt);
-        console.log(`alphabet: `, alphabet);
         numbers.forEach((number, i) => {
-            console.log(`numbers.forEach ------------------------------------------`);
             const buffer = lottery.concat(this.salt, alphabet);
-            console.log(`buffer: ${buffer}`);
             alphabet = (0, util_1.shuffle)(alphabet, buffer);
             const last = (0, util_1.toAlphabet)(number, alphabet);
-            console.log(`alphabet: ${alphabet}`);
-            console.log(`last: ${last}`);
-
             ret.push(...last);
-            // 通过分隔符来分割多个数字的情况，这些分隔符是不参与编码的
+            console.log('_encode alphabet', alphabet);
+            console.log('_encode ret', ret);
             if (i + 1 < numbers.length) {
                 const charCode = last[0].codePointAt(0) + i;
                 const extraNumber = typeof number === 'bigint'
@@ -182,32 +149,29 @@ class Hashids {
                 ret.push(seps[extraNumber % seps.length]);
             }
         });
-
-        console.log(' ---------------------------- ret', ret)
-
-        // 是否满足最小的长度
-        // if (ret.length < this.minLength) {
-        //     const prefixGuardIndex = (numbersIdInt + ret[0].codePointAt(0)) % guards.length;
-        //     ret.unshift(guards[prefixGuardIndex]);
-        //     if (ret.length < this.minLength) {
-        //         const suffixGuardIndex = (numbersIdInt + ret[2].codePointAt(0)) % guards.length;
-        //         ret.push(guards[suffixGuardIndex]);
-        //     }
-        // }
-        // const halfLength = Math.floor(alphabet.length / 2);
-        // while (ret.length < this.minLength) {
-        //     alphabet = (0, util_1.shuffle)(alphabet, alphabet);
-        //     ret.unshift(...alphabet.slice(halfLength));
-        //     ret.push(...alphabet.slice(0, halfLength));
-        //     const excess = ret.length - this.minLength;
-        //     if (excess > 0) {
-        //         const halfOfExcess = excess / 2;
-        //         ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength);
-        //     }
-        // }
+        if (ret.length < this.minLength) {
+            const prefixGuardIndex = (numbersIdInt + ret[0].codePointAt(0)) % guards.length;
+            ret.unshift(guards[prefixGuardIndex]);
+            if (ret.length < this.minLength) {
+                const suffixGuardIndex = (numbersIdInt + ret[2].codePointAt(0)) % guards.length;
+                ret.push(guards[suffixGuardIndex]);
+            }
+        }
+        const halfLength = Math.floor(alphabet.length / 2);
+        while (ret.length < this.minLength) {
+            alphabet = (0, util_1.shuffle)(alphabet, alphabet);
+            ret.unshift(...alphabet.slice(halfLength));
+            ret.push(...alphabet.slice(0, halfLength));
+            const excess = ret.length - this.minLength;
+            if (excess > 0) {
+                const halfOfExcess = excess / 2;
+                ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength);
+            }
+        }
         return ret;
     }
     _decode(id) {
+        console.log(' -------------------- 解密开始 -----------------------  ');
         if (!this.isValidId(id)) {
             throw new Error(`The provided ID (${id}) is invalid, as it contains characters that do not exist in the alphabet (${this.guards.join('')}${this.seps.join('')}${this.alphabet.join('')})`);
         }
@@ -217,15 +181,21 @@ class Hashids {
         if (idBreakdown.length === 0)
             return [];
         const lotteryChar = idBreakdown[Symbol.iterator]().next().value;
+        console.log('lotteryChar: ', lotteryChar);
         const idArray = idBreakdown.slice(lotteryChar.length).split(this.sepsRegExp);
         let lastAlphabet = this.alphabet;
         const result = [];
+        console.log('_decode lastAlphabet: ', lastAlphabet);
+        console.log('_decode idArray: ', idArray)
         for (const subId of idArray) {
             const buffer = [lotteryChar, ...this.salt, ...lastAlphabet];
             const nextAlphabet = (0, util_1.shuffle)(lastAlphabet, buffer.slice(0, lastAlphabet.length));
+            console.log('nextAlphabet: ', nextAlphabet)
+            console.log((0, util_1.fromAlphabet)(Array.from(subId), nextAlphabet))
             result.push((0, util_1.fromAlphabet)(Array.from(subId), nextAlphabet));
             lastAlphabet = nextAlphabet;
         }
+        console.log('_decode result: ', result);
         // if the result is different from what we'd expect, we return an empty result (malformed input):
         if (this._encode(result).join('') !== id)
             return [];

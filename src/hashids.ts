@@ -230,30 +230,32 @@ export default class Hashids {
       }
     })
 
-    if (ret.length < this.minLength) {
-      const prefixGuardIndex =
-        (numbersIdInt + ret[0].codePointAt(0)!) % guards.length
-      ret.unshift(guards[prefixGuardIndex])
+    console.log('加密完成之后 alphabet: ', alphabet);
 
-      if (ret.length < this.minLength) {
-        const suffixGuardIndex =
-          (numbersIdInt + ret[2].codePointAt(0)!) % guards.length
-        ret.push(guards[suffixGuardIndex])
-      }
-    }
+    // if (ret.length < this.minLength) {
+    //   const prefixGuardIndex =
+    //     (numbersIdInt + ret[0].codePointAt(0)!) % guards.length
+    //   ret.unshift(guards[prefixGuardIndex])
 
-    const halfLength = Math.floor(alphabet.length / 2)
-    while (ret.length < this.minLength) {
-      alphabet = shuffle(alphabet, alphabet)
-      ret.unshift(...alphabet.slice(halfLength))
-      ret.push(...alphabet.slice(0, halfLength))
+    //   if (ret.length < this.minLength) {
+    //     const suffixGuardIndex =
+    //       (numbersIdInt + ret[2].codePointAt(0)!) % guards.length
+    //     ret.push(guards[suffixGuardIndex])
+    //   }
+    // }
 
-      const excess = ret.length - this.minLength
-      if (excess > 0) {
-        const halfOfExcess = excess / 2
-        ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength)
-      }
-    }
+    // const halfLength = Math.floor(alphabet.length / 2)
+    // while (ret.length < this.minLength) {
+    //   alphabet = shuffle(alphabet, alphabet)
+    //   ret.unshift(...alphabet.slice(halfLength))
+    //   ret.push(...alphabet.slice(0, halfLength))
+
+    //   const excess = ret.length - this.minLength
+    //   if (excess > 0) {
+    //     const halfOfExcess = excess / 2
+    //     ret = ret.slice(halfOfExcess, halfOfExcess + this.minLength)
+    //   }
+    // }
 
     return ret
   }
@@ -278,7 +280,7 @@ export default class Hashids {
 
     let lastAlphabet: string[] = this.alphabet
     const result: NumberLike[] = []
-
+    console.log('_decode idArray: ', idArray)
     for (const subId of idArray) {
       const buffer = [lotteryChar, ...this.salt, ...lastAlphabet]
       const nextAlphabet = shuffle(
